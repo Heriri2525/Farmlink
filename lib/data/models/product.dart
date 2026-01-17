@@ -8,6 +8,9 @@ class Product {
   final double quantity;
   final String ownerName;
   final String? ownerId;
+  final String description;
+  final String? ownerPhone;
+  final String category;
 
   Product({
     required this.id,
@@ -19,59 +22,41 @@ class Product {
     required this.quantity,
     required this.ownerName,
     this.ownerId,
+    this.description = '',
+    this.ownerPhone,
+    this.category = 'Other',
   });
-}
 
-// Dummy Data
-final List<Product> dummyProducts = [
-  Product(
-    id: '1',
-    name: 'Red Ripe Tomatoes',
-    imageUrl: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=500&q=80',
-    location: 'Nairobi, Kenya',
-    price: 1.20,
-    unit: 'kg',
-    quantity: 500,
-    ownerName: 'John Doe',
-  ),
-  Product(
-    id: '2',
-    name: 'Hass Avocados',
-    imageUrl: 'https://images.unsplash.com/photo-1523049673856-38866de6c63f?auto=format&fit=crop&w=500&q=80',
-    location: 'Kiambu, Kenya',
-    price: 0.45,
-    unit: 'piece',
-    quantity: 2000,
-    ownerName: 'Mary Jane',
-  ),
-  Product(
-    id: '3',
-    name: 'Organic Carrots',
-    imageUrl: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?auto=format&fit=crop&w=500&q=80',
-    location: 'Nakuru, Kenya',
-    price: 25.00,
-    unit: 'sack',
-    quantity: 50,
-    ownerName: 'Peter Pan',
-  ),
-  Product(
-    id: '4',
-    name: 'Irish Potatoes',
-    imageUrl: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=500&q=80',
-    location: 'Meru, Kenya',
-    price: 32.00,
-    unit: 'sack',
-    quantity: 120,
-    ownerName: 'Alice Wonderland',
-  ),
-   Product(
-    id: '5',
-    name: 'Sweet Mangoes',
-    imageUrl: 'https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=500&q=80',
-    location: 'Machakos, Kenya',
-    price: 8.50,
-    unit: 'box',
-    quantity: 80,
-    ownerName: 'Bob Builder',
-  ),
-];
+  factory Product.fromJson(Map<String, dynamic> json) {
+    return Product(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      imageUrl: json['image_url'] as String? ?? 'https://picsum.photos/id/237/150/150',
+      location: json['location'] as String? ?? 'Unknown',
+      price: (json['price'] as num).toDouble(),
+      unit: json['unit'] as String? ?? 'unit',
+      quantity: (json['quantity'] as num).toDouble(),
+      ownerName: json['owner_name'] as String? ?? 'Farmer',
+      ownerId: json['owner_id'] as String?,
+      description: json['description'] as String? ?? '',
+      ownerPhone: json['owner_phone'] as String?,
+      category: json['category'] as String? ?? 'Other',
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'image_url': imageUrl,
+      'location': location,
+      'price': price,
+      'unit': unit,
+      'quantity': quantity,
+      'description': description,
+      'owner_phone': ownerPhone,
+      'category': category,
+      'owner_id': ownerId,
+      'owner_name': ownerName,
+    };
+  }
+}
