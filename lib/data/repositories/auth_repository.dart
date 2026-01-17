@@ -1,15 +1,15 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:farmlink/data/repositories/profile_repository.dart';
 
 class AuthRepository {
-  final SupabaseClient _supabase;
+  final FirebaseAuth _auth;
   final ProfileRepository _profileRepository;
 
-  AuthRepository(this._supabase, this._profileRepository) {
-    _supabase.auth.onAuthStateChange.listen((data) {
-      final User? user = data.session?.user;
+  AuthRepository(this._auth, this._profileRepository) {
+    _auth.authStateChanges().listen((user) {
       if (user != null) {
         _ensureProfileExists(user);
       }
@@ -17,18 +17,19 @@ class AuthRepository {
   }
 
   // Get current user id
-  String? get currentUser => _supabase.auth.currentUser?.id;
+  String? get currentUser => _auth.currentUser?.uid;
 
   // Stream of auth state changes
-  Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   Future<void> _ensureProfileExists(User user, {String? name, String? phone}) async {
-    final profile = await _profileRepository.getProfile(user.id);
+    final profile = await _profileRepository.getProfile(user.uid);
     if (profile == null) {
       await _profileRepository.createProfile(
-        userId: user.id,
-        name: name ?? user.userMetadata?['full_name'] ?? user.userMetadata?['name'] ?? user.email!.split('@').first,
-        phone: phone ?? user.phone,
+        userId: user.uid,
+        name: name ?? user.displayName ?? user.email!.split('@').first,
+        email: user.email!,
+        phone: phone ?? user.phoneNumber,
       );
     }
   }
@@ -36,10 +37,10 @@ class AuthRepository {
   // Sign In with Email and Password
   Future<void> signIn({required String email, required String password}) async {
     try {
-      await _supabase.auth.signInWithPassword(email: email, password: password);
-    } on AuthException catch (e) {
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
+    } on FirebaseAuthException catch (e) {
       print('Auth Error: ${e.message}'); // DEBUG
-      throw e.message;
+      throw e.message ?? 'Authentication failed';
     } catch (e) {
       print('Unexpected Error: $e'); // DEBUG
       throw 'An unexpected error occurred: $e';
@@ -49,18 +50,18 @@ class AuthRepository {
   // Sign Up with Email and Password
   Future<void> signUp({required String email, required String password, required String name, required String phone}) async {
     try {
-      final response = await _supabase.auth.signUp(
+      final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
-        data: {
-          'name': name,
-          'phone': phone,
-        },
       );
-      if (response.user == null) {
-        throw 'Sign up failed';
+      
+      if (credential.user != null) {
+        await credential.user!.updateDisplayName(name);
+        // We ensure profile creation here as well to be sure
+        await _ensureProfileExists(credential.user!, name: name, phone: phone);
       }
-      // The onAuthStateChange listener will handle profile creation
+    } on FirebaseAuthException catch (e) {
+      throw e.message ?? 'Sign up failed';
     } catch (e) {
       throw e.toString();
     }
@@ -69,7 +70,8 @@ class AuthRepository {
   // Sign Out
   Future<void> signOut() async {
     try {
-      await _supabase.auth.signOut();
+      await _auth.signOut();
+      await GoogleSignIn().signOut();
     } catch (e) {
       throw e.toString();
     }
@@ -78,15 +80,17 @@ class AuthRepository {
   // Sign In with Google (OAuth)
   Future<bool> signInWithGoogle() async {
     try {
-      final redirectUrl = kIsWeb ? null : 'com.example.farmlink://login-callback/';
-      
-      final res = await _supabase.auth.signInWithOAuth(
-        OAuthProvider.google,
-        queryParams: {'prompt': 'select_account consent'},
-        redirectTo: redirectUrl,
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) return false;
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
       );
-      
-      return res; 
+
+      final userCredential = await _auth.signInWithCredential(credential);
+      return userCredential.user != null;
     } catch (e) {
       throw e.toString();
     }
@@ -95,9 +99,9 @@ class AuthRepository {
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final profileRepository = ref.watch(profileRepositoryProvider);
-  return AuthRepository(Supabase.instance.client, profileRepository);
+  return AuthRepository(FirebaseAuth.instance, profileRepository);
 });
 
-final authStateProvider = StreamProvider<AuthState>((ref) {
+final authStateProvider = StreamProvider<User?>((ref) {
   return ref.watch(authRepositoryProvider).authStateChanges;
 });

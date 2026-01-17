@@ -10,14 +10,15 @@ import 'package:farmlink/features/home/home_screen.dart';
 import 'package:farmlink/features/products/product_details_screen.dart';
 import 'package:farmlink/features/notifications/notifications_screen.dart';
 import 'package:farmlink/features/search/search_screen.dart';
-import 'package:farmlink/features/orders/orders_screen.dart'; // Single, correct import
+import 'package:farmlink/features/orders/orders_screen.dart';
 import 'package:farmlink/data/models/product.dart';
-import 'package:farmlink/main.dart'; // For Splash Screen
+import 'package:farmlink/main.dart';
 import 'package:farmlink/features/auth/auth_controller.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:farmlink/data/models/profile_model.dart';
 import 'package:farmlink/features/products/add_product_screen.dart';
+import 'package:farmlink/data/repositories/auth_repository.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   
@@ -25,20 +26,20 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: GoRouterRefreshStream(ref.read(authRepositoryProvider).authStateChanges),
     redirect: (context, state) {
-      final session = Supabase.instance.client.auth.currentSession;
-      final isLoggedIn = session != null;
+      final user = FirebaseAuth.instance.currentUser;
+      final isLoggedIn = user != null;
       final isLoggingIn = state.uri.toString() == '/login' || state.uri.toString() == '/register';
       final isSplash = state.uri.toString() == '/';
 
-      if (isLoggedIn) {
-        // If logged in and trying to go to login/register or splash, go to home
+      if (!isLoggedIn) {
+        if (!isLoggingIn && !isSplash) {
+          return '/login';
+        }
+      } else {
         if (isLoggingIn || isSplash) {
           return '/home';
         }
-      } 
-      // Note: We don't force redirect to login from splash, so user can see splash content.
-      // But if they try to access home/protected routes without login, we should redirect.
-      // For now, let's keep it simple: If logged in -> Home. 
+      }
       
       return null;
     },
@@ -100,14 +101,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/orders',
         builder: (context, state) => const OrdersScreen(),
       ),
-      // OAuth callback route - handles Google OAuth redirect
-      GoRoute(
-        path: '/login-callback',
-        builder: (context, state) {
-          // This screen will process the OAuth callback
-          return const OAuthCallbackScreen();
-        },
-      ),
     ],
   );
 });
@@ -126,53 +119,5 @@ class GoRouterRefreshStream extends ChangeNotifier {
   void dispose() {
     _subscription.cancel();
     super.dispose();
-  }
-}
-
-// OAuth Callback Screen to handle Google OAuth redirect
-class OAuthCallbackScreen extends StatefulWidget {
-  const OAuthCallbackScreen({super.key});
-
-  @override
-  State<OAuthCallbackScreen> createState() => _OAuthCallbackScreenState();
-}
-
-class _OAuthCallbackScreenState extends State<OAuthCallbackScreen> {
-  @override
-  void initState() {
-    super.initState();
-    _handleOAuthCallback();
-  }
-
-  Future<void> _handleOAuthCallback() async {
-    try {
-      // Get the current URI from the router state
-      final uri = GoRouterState.of(context).uri;
-      
-      // Extract session from the OAuth callback URL
-      await Supabase.instance.client.auth.getSessionFromUrl(uri);
-      
-      if (mounted) {
-        // Session is set, navigate to home
-        context.go('/home');
-      }
-    } catch (e) {
-      // If there's an error, redirect to login
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Authentication failed: ${e.toString()}')),
-        );
-        context.go('/login');
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
   }
 }

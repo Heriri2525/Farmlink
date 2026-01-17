@@ -1,50 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
 import 'package:farmlink/core/constants.dart';
 import 'package:farmlink/core/theme.dart';
 import 'package:farmlink/core/router.dart';
 import 'package:farmlink/features/notifications/notification_controller.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // Import flutter_secure_storage
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Supabase
-  await Supabase.initialize(
-    url: AppConstants.supabaseUrl,
-    anonKey: AppConstants.supabaseAnonKey,
-    authOptions: const FlutterAuthClientOptions( // Use authOptions
-      authFlowType: AuthFlowType.pkce, // Correct enum case
-      pkceAsyncStorage: SupabaseSecureStorage(), // Use custom secure storage
-    ),
-  );
+  bool isFirebaseInitialized = false;
+  String? initError;
 
-  runApp(const ProviderScope(child: MyApp()));
-}
-
-// Custom storage implementation for PKCE using FlutterSecureStorage
-class SupabaseSecureStorage extends GotrueAsyncStorage {
-  const SupabaseSecureStorage();
-
-  @override
-  Future<String?> getItem({required String key}) async {
-    const storage = FlutterSecureStorage();
-    return await storage.read(key: key);
+  // Initialize Firebase
+  try {
+    // Note: For Web, you must provide FirebaseOptions:
+    // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp();
+    isFirebaseInitialized = true;
+  } catch (e) {
+    initError = e.toString();
+    debugPrint('Firebase initialization failed: $initError');
   }
 
-  @override
-  Future<void> removeItem({required String key}) async {
-    const storage = FlutterSecureStorage();
-    await storage.delete(key: key);
-  }
-
-  @override
-  Future<void> setItem({required String key, required String value}) async {
-    const storage = FlutterSecureStorage();
-    await storage.write(key: key, value: value);
-  }
+  runApp(ProviderScope(
+    child: isFirebaseInitialized 
+      ? const MyApp() 
+      : MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red, size: 64),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Firebase Initialization Failed',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Error: $initError\n\n'
+                      'Tip: If you are running on Web, you must run "flutterfire configure" '
+                      'to generate lib/firebase_options.dart and use it in initializeApp.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+  ));
 }
 
 

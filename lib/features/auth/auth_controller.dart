@@ -1,16 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:farmlink/data/repositories/auth_repository.dart';
-import 'package:farmlink/data/repositories/profile_repository.dart'; // Add this import
-
-// Provider for AuthRepository
-final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  final profileRepository = ref.watch(profileRepositoryProvider); // Use profileRepositoryProvider
-  return AuthRepository(Supabase.instance.client, profileRepository); // Pass profileRepository
-});
 
 // Stream provider to listen to auth state
-final authStateProvider = StreamProvider<AuthState>((ref) {
+final authStateProvider = StreamProvider<User?>((ref) {
   return ref.watch(authRepositoryProvider).authStateChanges;
 });
 
@@ -58,12 +51,13 @@ class AuthController extends Notifier<bool> {
   }
 
   Future<void> signInWithGoogle() async {
-    // Note: OAuth flow might not set state=false immediately if it redirects.
-    // Handling deep links would be needed for full flow completion marking.
+    state = true;
     try {
        await _authRepository.signInWithGoogle();
     } catch (e) {
       rethrow;
+    } finally {
+      state = false;
     }
   }
 }

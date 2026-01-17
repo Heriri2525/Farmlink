@@ -1,18 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:farmlink/data/models/order_model.dart';
 import 'package:farmlink/data/repositories/orders_repository.dart';
 
 final currentUserIdProvider = Provider<String?>((ref) {
-  return Supabase.instance.client.auth.currentUser?.id;
+  return FirebaseAuth.instance.currentUser?.uid;
 });
 
-// Primary provider
-final ordersRepositoryProvider = Provider<OrdersRepository>((ref) {
-  return OrdersRepository(Supabase.instance.client);
-});
-
-// Restore singular name for backward compatibility
+// Use the provider from orders_repository.dart
 final orderRepositoryProvider = ordersRepositoryProvider;
 
 // Restore the generic stream provider used by OrderHistoryScreen

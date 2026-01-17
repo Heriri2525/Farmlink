@@ -25,18 +25,18 @@ class ProfileScreen extends ConsumerWidget {
               CircleAvatar(
                 radius: 50,
                 backgroundColor: Colors.green,
-                backgroundImage: profile?['avatar_url'] != null ? NetworkImage(profile!['avatar_url']!) : null, // Fixed here
-                child: profile?['avatar_url'] == null ? const Icon(Icons.person, size: 50, color: Colors.white) : null, // Fixed here
+                backgroundImage: profile?.avatarUrl != null ? NetworkImage(profile!.avatarUrl!) : null,
+                child: profile?.avatarUrl == null ? const Icon(Icons.person, size: 50, color: Colors.white) : null,
               ),
               const SizedBox(height: 16),
               Text(
-                profile?['name'] ?? 'No Name Set', // Fixed here
+                profile?.name ?? 'No Name Set',
                 style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              Text(profile?['email'] ?? 'No Email Set', style: TextStyle(color: Colors.grey[600])), // Fixed here
+              Text(profile?.email ?? 'No Email Set', style: TextStyle(color: Colors.grey[600])),
               const SizedBox(height: 8),
-              Text(profile?['phone'] ?? 'No Phone Set', style: TextStyle(color: Colors.grey[600])), // Fixed here
+              Text(profile?.phone ?? 'No Phone Set', style: TextStyle(color: Colors.grey[600])),
               const SizedBox(height: 32),
               
                _buildProfileItem(context, Icons.person_outline, 'Edit Profile & Settings', () {

@@ -1,29 +1,23 @@
 import 'dart:io';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class StorageRepository {
-  final SupabaseClient _supabase;
+  final FirebaseStorage _storage;
 
-  StorageRepository(this._supabase);
+  StorageRepository(this._storage);
 
-  // Upload an image to a specific bucket
+  // Upload an image to a specific folder
   Future<String> uploadImage({
     required String bucket,
     required File imageFile,
     required String path,
   }) async {
     try {
-      // Upload the file
-      await _supabase.storage.from(bucket).upload(
-            path,
-            imageFile,
-            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
-          );
-
-      // Get public URL
-      final String publicUrl = _supabase.storage.from(bucket).getPublicUrl(path);
-      return publicUrl;
+      final ref = _storage.ref().child(bucket).child(path);
+      await ref.putFile(imageFile);
+      final String downloadUrl = await ref.getDownloadURL();
+      return downloadUrl;
     } catch (e) {
       throw 'Upload Error: $e';
     }
@@ -49,5 +43,5 @@ class StorageRepository {
 }
 
 final storageRepositoryProvider = Provider<StorageRepository>((ref) {
-  return StorageRepository(Supabase.instance.client);
+  return StorageRepository(FirebaseStorage.instance);
 });

@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "744887187348",
+    "project_id": "farmlink-5766f",
+    "storage_bucket": "farmlink-5766f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:744887187348:android:dda2bc0da3ca5b39358181",
+        "android_client_info": {
+          "package_name": "com.example.farmlink"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "744887187348-mqn37ltbeoa3ifl1h94nf3sjecll61eo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.farmlink",
+            "certificate_hash": "45d13c5780a951d67d4705459e2713f7401a4de8"
+          }
+        },
+        {
+          "client_id": "744887187348-a6k9mbf2gkjng0v0onad7q973lc0j060.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAmQcULJOcKzroVVc_baIXKww4u1G5rMSs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "744887187348-a6k9mbf2gkjng0v0onad7q973lc0j060.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "744887187348-ttvqnlba7bjhtivlksc8iq36ffrlv1g5.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.farmlink"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

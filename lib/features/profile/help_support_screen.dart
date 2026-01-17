@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
+
+  Future<void> _launchUrl(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    if (!await launchUrl(url)) {
+      throw Exception('Could not launch $url');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,15 +43,17 @@ class HelpSupportScreen extends StatelessWidget {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green),
           ),
           const SizedBox(height: 16),
-          const ListTile(
-            leading: Icon(Icons.email_outlined, color: Colors.green),
-            title: Text('Email Support'),
-            subtitle: Text('support@farmlink.com'),
+          ListTile(
+            leading: const Icon(Icons.email_outlined, color: Colors.green),
+            title: const Text('Email Support'),
+            subtitle: const Text('support@farmlink.com'),
+            onTap: () => _launchUrl('mailto:support@farmlink.com'),
           ),
-          const ListTile(
-            leading: Icon(Icons.phone_outlined, color: Colors.green),
-            title: Text('Call Us'),
-            subtitle: Text('+1 (800) FARM-LINK'),
+          ListTile(
+            leading: const Icon(Icons.phone_outlined, color: Colors.green),
+            title: const Text('Call Us'),
+            subtitle: const Text('+1 (800) FARM-LINK'),
+            onTap: () => _launchUrl('tel:+18003276546'),
           ),
         ],
       ),
