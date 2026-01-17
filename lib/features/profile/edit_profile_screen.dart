@@ -144,6 +144,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                 avatarUrl = await ref
                                     .read(storageRepositoryProvider)
                                     .uploadProfileImage(_imageFile!, widget.profile!.userId);
+                              } else if (avatarUrl == null || avatarUrl.isEmpty) {
+                                avatarUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=${_nameController.text}';
                               }
 
                               final updatedProfile = Profile(

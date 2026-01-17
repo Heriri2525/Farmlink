@@ -7,6 +7,7 @@ import 'package:farmlink/features/products/add_product_screen.dart';
 import 'package:farmlink/features/orders/orders_screen.dart';
 import 'package:farmlink/features/products/my_products_screen.dart';
 import 'package:farmlink/features/profile/profile_screen.dart';
+import 'package:farmlink/data/repositories/profile_repository.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -112,24 +113,68 @@ class HomeFeed extends ConsumerWidget {
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  'All',
+                  'Vegetables',
+                  'Fruits',
+                  'Grains',
+                  'Dairy',
+                  'Poultry',
+                  'Meat',
+                  'Other'
+                ].map((category) {
+                  final isSelected = ref.watch(selectedCategoryProvider) == category;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: ChoiceChip(
+                      label: Text(category),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        if (selected) {
+                          ref.read(selectedCategoryProvider.notifier).state = category;
+                        }
+                      },
+                      selectedColor: Theme.of(context).primaryColor,
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.white : Colors.black87,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Fresh Harvests',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                  ),
-                  TextButton(
-                    onPressed: () {},
-                    child: Text(
-                      'See All',
-                      style: TextStyle(color: Theme.of(context).primaryColor),
+                   ref.watch(userProfileProvider).when(
+                    data: (profile) => Text(
+                      'Hello, ${profile?.name ?? 'Farmer'}!',
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
                     ),
+                    loading: () => const SizedBox(),
+                    error: (_, __) => const SizedBox(),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Fresh Harvests',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                      ),
+                    ],
                   ),
                 ],
               ),
