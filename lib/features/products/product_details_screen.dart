@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:farmlink/data/models/product.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:farmlink/data/repositories/order_repository.dart';
+import 'package:farmlink/data/repositories/orders_repository.dart';
 import 'package:farmlink/data/repositories/auth_repository.dart';
+import 'package:farmlink/data/repositories/product_repository.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:farmlink/features/orders/order_providers.dart';
 
@@ -19,6 +21,62 @@ class ProductDetailsScreen extends ConsumerStatefulWidget {
 class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   bool _isOrdering = false;
 
+  Future<void> _launchUrl(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    if (!await launchUrl(url)) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
+  void _showSellerInfo(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Seller Information',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const CircleAvatar(child: Icon(Icons.person)),
+              title: Text(widget.product.ownerName),
+              subtitle: const Text('Verified Seller'),
+            ),
+            if (widget.product.ownerPhone != null)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.phone, color: Colors.green),
+                title: Text(widget.product.ownerPhone!),
+                onTap: () => _launchUrl('tel:${widget.product.ownerPhone}'),
+              ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  // Optionally filter search by owner_id if we have a way to pass it
+                  ref.read(searchQueryProvider.notifier).state = widget.product.ownerName;
+                  context.push('/search');
+                },
+                child: const Text('View All Products by Seller'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -32,12 +90,6 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
             style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.favorite_border),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: Stack(
         children: [
@@ -74,22 +126,36 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(
-                                  child: Text(
-                                    widget.product.name,
-                                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                          fontWeight: FontWeight.bold,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        widget.product.name,
+                                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(color: Colors.blue.withOpacity(0.2)),
                                         ),
+                                        child: Text(
+                                          widget.product.category,
+                                          style: const TextStyle(
+                                            color: Colors.blue,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                               children: [
-                                const Icon(Icons.star, color: Colors.amber, size: 18),
-                                const SizedBox(width: 4),
-                                const Text('4.8 (124 reviews)', style: TextStyle(color: Colors.grey)),
-                               ],
                             ),
                             
                             const SizedBox(height: 24),
@@ -148,7 +214,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                                    CircleAvatar(
                                      backgroundColor: Colors.blue[100],
                                      child: Text(
-                                       widget.product.ownerName.substring(0, 2).toUpperCase(), 
+                                       widget.product.ownerName.isNotEmpty ? widget.product.ownerName.substring(0, 1).toUpperCase() : 'V', 
                                        style: TextStyle(color: Colors.blue[800]),
                                      ),
                                    ),
@@ -162,7 +228,10 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                                        ],
                                      ),
                                    ),
-                                   TextButton(onPressed: () {}, child: const Text('Visit Store')),
+                                   TextButton(
+                                     onPressed: () => _showSellerInfo(context), 
+                                     child: const Text('Visit More')
+                                   ),
                                 ],
                               ),
                             ),
@@ -175,7 +244,9 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Freshly harvested ${widget.product.name} from the fertile lands of ${widget.product.location}. Grown with care using sustainable farming practices. Best quality guaranteed.',
+                              widget.product.description.isNotEmpty 
+                                ? widget.product.description 
+                                : 'Freshly harvested ${widget.product.name} from the fertile lands of ${widget.product.location}. Best quality guaranteed.',
                               style: TextStyle(color: Colors.grey[700], height: 1.5),
                             ),
                           ],
@@ -203,7 +274,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: _isOrdering ? null : () async {
+                        onPressed: _isOrdering || widget.product.quantity <= 0 ? null : () async {
                           final buyer = ref.read(authRepositoryProvider).currentUser;
                           if (buyer == null) return;
                           
@@ -216,15 +287,21 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
 
                           setState(() => _isOrdering = true);
                           try {
-                            await ref.read(orderRepositoryProvider).createOrder(
+                            const double quantityToOrder = 1.0;
+                            
+                            // 1. Create Order
+                            await ref.read(ordersRepositoryProvider).createOrder(
                               buyerId: buyer,
                               sellerId: widget.product.ownerId!,
                               productId: widget.product.id,
                               productName: widget.product.name,
-                              totalPrice: widget.product.price,
-                              quantity: 1, // Default to 1 for simplicity now
+                              totalPrice: widget.product.price * quantityToOrder,
+                              quantity: quantityToOrder,
                             );
                             
+                            // 2. Decrement Quantity
+                            await ref.read(productRepositoryProvider).decrementQuantity(widget.product.id, quantityToOrder);
+
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Order Placed Successfully!'))
@@ -242,23 +319,11 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                           }
                         },
                         icon: const Icon(Icons.shopping_bag_outlined),
-                        label: Text(_isOrdering ? 'Placing Order...' : 'Place Order'),
+                        label: Text(widget.product.quantity <= 0 ? 'Out of Stock' : (_isOrdering ? 'Placing Order...' : 'Place Order')),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF4C6EF5),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        onPressed: () {},
-                        icon: const Icon(Icons.chat_bubble_outline),
-                        color: Colors.black87,
                       ),
                     ),
                   ],

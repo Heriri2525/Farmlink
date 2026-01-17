@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:farmlink/data/repositories/order_repository.dart';
+import 'package:farmlink/data/repositories/orders_repository.dart';
+import 'package:farmlink/data/models/order_model.dart';
 import 'package:intl/intl.dart';
 
 import 'package:farmlink/features/orders/order_providers.dart';
@@ -34,11 +35,26 @@ class OrderHistoryScreen extends ConsumerWidget {
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
-                  title: Text(order.productName),
+                  title: Text(order.productName, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text('Total: \$${order.totalPrice.toStringAsFixed(2)}'),
-                  trailing: Text(
-                    DateFormat('MMM d, yyyy').format(DateTime.now()), // Placeholder for created_at
-                    style: const TextStyle(color: Colors.grey),
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        DateFormat('MMM d, yyyy').format(order.createdAt),
+                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        order.status.name.toUpperCase(),
+                        style: TextStyle(
+                          color: order.status == OrderStatus.completed ? Colors.green : Colors.grey,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );

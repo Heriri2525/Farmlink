@@ -1,7 +1,9 @@
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum OrderStatus {
   pending,
+  approved,
+  rejected,
   completed,
   cancelled;
 
@@ -11,7 +13,6 @@ enum OrderStatus {
     try {
       return values.byName(json);
     } catch (_) {
-      // Fallback for older string formats if necessary
       return values.firstWhere(
         (e) => e.name.toLowerCase() == json.toLowerCase(),
         orElse: () => OrderStatus.pending,
@@ -22,7 +23,6 @@ enum OrderStatus {
 
 class Order {
   final String id;
-  final String userId;
   final String buyerId;
   final String sellerId;
   final String productId;
@@ -34,7 +34,6 @@ class Order {
 
   Order({
     required this.id,
-    required this.userId,
     required this.buyerId,
     required this.sellerId,
     required this.productId,
@@ -47,23 +46,22 @@ class Order {
 
   factory Order.fromJson(Map<String, dynamic> json) {
     return Order(
-      id: json['id'],
-      userId: json['user_id'] ?? '',
-      buyerId: json['buyer_id'],
-      sellerId: json['seller_id'],
-      productId: json['product_id'],
-      productName: json['product_name'] ?? 'product',
-      totalPrice: (json['total_price'] as num).toDouble(),
-      quantity: (json['quantity'] as num).toDouble(),
+      id: json['id'] ?? '',
+      buyerId: json['buyer_id'] ?? '',
+      sellerId: json['seller_id'] ?? '',
+      productId: json['product_id'] ?? '',
+      productName: json['product_name'] ?? 'Product',
+      totalPrice: (json['total_price'] as num?)?.toDouble() ?? 0.0,
+      quantity: (json['quantity'] as num?)?.toDouble() ?? 0.0,
       status: OrderStatus.fromJson(json['status'] ?? 'pending'),
-      createdAt: DateTime.parse(json['created_at']),
+      createdAt: json['created_at'] is Timestamp 
+          ? (json['created_at'] as Timestamp).toDate() 
+          : DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
-      'user_id': userId,
       'buyer_id': buyerId,
       'seller_id': sellerId,
       'product_id': productId,
@@ -71,11 +69,9 @@ class Order {
       'total_price': totalPrice,
       'quantity': quantity,
       'status': status.toJson(),
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt,
     };
   }
-
-  String toJson() => json.encode(toMap());
 
   @override
   bool operator ==(Object other) {
@@ -83,7 +79,6 @@ class Order {
 
     return other is Order &&
       other.id == id &&
-      other.userId == userId &&
       other.buyerId == buyerId &&
       other.sellerId == sellerId &&
       other.productId == productId &&
@@ -97,7 +92,6 @@ class Order {
   @override
   int get hashCode {
     return id.hashCode ^
-      userId.hashCode ^
       buyerId.hashCode ^
       sellerId.hashCode ^
       productId.hashCode ^
@@ -110,7 +104,6 @@ class Order {
 
   Order copyWith({
     String? id,
-    String? userId,
     String? buyerId,
     String? sellerId,
     String? productId,
@@ -122,7 +115,6 @@ class Order {
   }) {
     return Order(
       id: id ?? this.id,
-      userId: userId ?? this.userId,
       buyerId: buyerId ?? this.buyerId,
       sellerId: sellerId ?? this.sellerId,
       productId: productId ?? this.productId,
