@@ -1,25 +1,31 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:farmlink/data/models/notification_model.dart';
 
 class NotificationRepository {
-  final SupabaseClient _supabase;
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
 
-  NotificationRepository(this._supabase);
+  NotificationRepository(this._firestore, this._auth);
 
   // Fetch initial notifications
   Future<List<AppNotification>> getNotifications() async {
     try {
-      final userId = _supabase.auth.currentUser?.id;
+      final userId = _auth.currentUser?.uid;
       if (userId == null) return [];
 
-      final data = await _supabase
-          .from('notifications')
-          .select()
-          .eq('user_id', userId)
-          .order('created_at', ascending: false);
+      final snapshot = await _firestore
+          .collection('notifications')
+          .where('user_id', isEqualTo: userId)
+          .orderBy('created_at', descending: true)
+          .get();
 
-      return (data as List).map((e) => AppNotification.fromJson(e)).toList();
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return AppNotification.fromJson(data);
+      }).toList();
     } catch (e) {
       throw e.toString();
     }
@@ -28,10 +34,10 @@ class NotificationRepository {
   // Mark as read
   Future<void> markAsRead(String notificationId) async {
     try {
-      await _supabase
-          .from('notifications')
-          .update({'is_read': true})
-          .eq('id', notificationId);
+      await _firestore
+          .collection('notifications')
+          .doc(notificationId)
+          .update({'is_read': true});
     } catch (e) {
       throw e.toString();
     }
@@ -39,16 +45,23 @@ class NotificationRepository {
 
   // Stream of realtime notifications
   Stream<List<AppNotification>> get notificationsStream {
-    final userId = _supabase.auth.currentUser?.id;
+    final userId = _auth.currentUser?.uid;
     if (userId == null) return Stream.value([]);
 
-    // We can use a simple stream transform here, but Supabase also supports exact stream
-    return _supabase
-        .from('notifications')
-        .stream(primaryKey: ['id'])
-        .eq('user_id', userId)
-        .order('created_at', ascending: false)
-        .map((data) => data.map((e) => AppNotification.fromJson(e)).toList());
+    return _firestore
+        .collection('notifications')
+        .where('user_id', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+          final notifications = snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return AppNotification.fromJson(data);
+          }).toList();
+          // Sort locally to avoid requiring a composite index
+          notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return notifications;
+        });
   }
 
   // Send notification
@@ -56,14 +69,16 @@ class NotificationRepository {
     required String userId,
     required String title,
     required String body,
-    String? orderId, // Added optional orderId parameter
+    String? orderId,
   }) async {
     try {
-      await _supabase.from('notifications').insert({
+      await _firestore.collection('notifications').add({
         'user_id': userId,
         'title': title,
         'body': body,
-        if (orderId != null) 'order_id': orderId, // Conditionally add order_id
+        'is_read': false,
+        if (orderId != null) 'order_id': orderId,
+        'created_at': FieldValue.serverTimestamp(),
       });
     } catch (e) {
       throw e.toString();
@@ -72,5 +87,5 @@ class NotificationRepository {
 }
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
-  return NotificationRepository(Supabase.instance.client);
+  return NotificationRepository(FirebaseFirestore.instance, FirebaseAuth.instance);
 });

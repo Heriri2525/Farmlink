@@ -15,6 +15,20 @@ class NotificationsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Notifications'),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.done_all),
+            tooltip: 'Mark all as read',
+            onPressed: () {
+              final notifications = notificationsAsync.value ?? [];
+              for (var n in notifications) {
+                if (!n.isRead) {
+                  ref.read(notificationControllerProvider.notifier).markAsRead(n.id);
+                }
+              }
+            },
+          ),
+        ],
       ),
       body: notificationsAsync.when(
         data: (notifications) {
